@@ -1,157 +1,78 @@
 name: Build AAB Oficial
-
-on:
-  push:
-  workflow_dispatch:
-
+on: [push, workflow_dispatch]
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Baixar código
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - name: Configurar Java 17
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
-          distribution: temurin
+          distribution: 'temurin'
           java-version: '17'
 
-      - name: Criar projeto Android
+      - name: Criar projeto Plim Clip
         run: |
           rm -rf app build .gradle
-
           mkdir -p app/src/main/java/com/plimclip/oficial
           mkdir -p app/src/main/res/values
-
-          cat > settings.gradle <<'EOF'
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-
-          rootProject.name = "plim-clip-oficial"
-          include(":app")
-          EOF
-
-          cat > build.gradle <<'EOF'
-          plugins {
-              id 'com.android.application' version '8.7.3' apply false
-          }
-          EOF
-
+          echo "include ':app'" > settings.gradle
+          echo "plugins { id 'com.android.application' version '8.7.3' apply false }" > build.gradle
           cat > app/build.gradle <<'EOF'
-          plugins {
-              id 'com.android.application'
-          }
-
+          plugins { id 'com.android.application' }
           android {
-              namespace 'com.plimclip.oficial'
-              compileSdk 35
-
-              defaultConfig {
-                  applicationId "com.plimclip.oficial"
-                  minSdk 24
-                  targetSdk 35
-                  versionCode 12
-                  versionName "1.0"
-              }
-
-              buildTypes {
-                  release {
-                      minifyEnabled false
-                  }
-              }
+            namespace 'com.plimclip.oficial'
+            compileSdk 34
+            defaultConfig {
+              applicationId "com.plimclip.oficial"
+              minSdk 24
+              targetSdk 34
+              versionCode 13
+              versionName "1.0.13"
+            }
+            buildTypes { release { minifyEnabled false } }
           }
-
-          dependencies {
-              implementation 'androidx.appcompat:appcompat:1.7.0'
-          }
+          dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
           EOF
-
           cat > app/src/main/AndroidManifest.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-
-              <application
-                  android:theme="@style/AppTheme"
-                  android:label="Plim Clip">
-
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true">
-
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-
-                  </activity>
-              </application>
+            <application android:label="Plim Clip">
+              <activity android:name=".MainActivity" android:exported="true">
+                <intent-filter>
+                  <action android:name="android.intent.action.MAIN"/>
+                  <category android:name="android.intent.category.LAUNCHER"/>
+                </intent-filter>
+              </activity>
+            </application>
           </manifest>
           EOF
-
           cat > app/src/main/java/com/plimclip/oficial/MainActivity.java <<'EOF'
           package com.plimclip.oficial;
-
           import android.os.Bundle;
-          import androidx.appcompat.app.AppCompatActivity;
           import android.widget.TextView;
-
+          import androidx.appcompat.app.AppCompatActivity;
           public class MainActivity extends AppCompatActivity {
-              @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-
-                  TextView texto = new TextView(this);
-                  texto.setText("Plim Clip Oficial");
-                  texto.setTextSize(24);
-
-                  setContentView(texto);
-              }
+            protected void onCreate(Bundle b){
+              super.onCreate(b);
+              TextView t=new TextView(this);
+              t.setText("Plim Clip Oficial - Build 13 VERDE");
+              setContentView(t);
+            }
           }
           EOF
-
-          cat > app/src/main/res/values/strings.xml <<'EOF'
-          <resources>
-              <string name="app_name">Plim Clip</string>
-          </resources>
-          EOF
-
-          cat > app/src/main/res/values/styles.xml <<'EOF'
-          <resources>
-              <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
-                  <item name="android:fontFamily">sans</item>
-                  <item name="android:colorAccent">#6200EE</item>
-              </style>
-          </resources>
-          EOF
-
+          echo '<resources><string name="app_name">Plim Clip</string></resources>' > app/src/main/res/values/strings.xml
           echo "org.gradle.jvmargs=-Xmx2048m" > gradle.properties
-          echo "android.useAndroidue" >> gradle.properties
 
-
-      - name: Configurar Gradle
+      - name: Setup Gradle 8.7
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
+          gradle-version: 8.7
 
-      - name: Gerar AAB
+      - name: Build AAB Release
         run: gradle :app:bundleRelease
 
-      - name: Salvar AAB
+      - name: Upload AAB para Play Console
         uses: actions/upload-artifact@v4
         with:
           name: aab-oficial-play-console
