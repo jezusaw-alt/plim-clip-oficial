@@ -12,7 +12,7 @@ jobs:
 
       - name: Criar projeto Android
         run: |
-          rm -rf app build .gradle gradle
+          rm -rf app build .gradle
           mkdir -p app/src/main/java/com/plimclip/oficial
           mkdir -p app/src/main/res/values
           echo "include ':app'" > settings.gradle
@@ -26,7 +26,7 @@ jobs:
               applicationId "com.plimclip.oficial"
               minSdk 24
               targetSdk 34
-              versionCode 11
+              versionCode 12
               versionName "1.0"
             }
             buildTypes { release { minifyEnabled false } }
@@ -63,12 +63,13 @@ jobs:
           echo '<resources><string name="app_name">Plim Clip</string></resources>' > app/src/main/res/values/strings.xml
           echo "org.gradle.jvmargs=-Xmx2048m" > gradle.properties
 
-      - name: Build AAB com Gradle 8.7
+      - name: Setup Gradle 8.7
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.7
-          cache-disabled: false
-          arguments: :app:bundleRelease
+
+      - name: Build AAB
+        run: gradle :app:bundleRelease
 
       - name: Upload AAB
         uses: actions/upload-artifact@v4
