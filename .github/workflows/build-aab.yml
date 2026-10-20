@@ -11,15 +11,47 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Aceitar licencas Android
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls $ANDROID_HOME/cmdline-tools/
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0" || true
+
       - name: Criar projeto Plim Clip
         run: |
-          rm -rf app build .gradle
+          rm -rf app build .gradle gradle
           mkdir -p app/src/main/java/com/plimclip/oficial
           mkdir -p app/src/main/res/values
-          echo "include ':app'" > settings.gradle
-          echo "plugins { id 'com.android.application' version '8.7.3' apply false }" > build.gradle
+          cat > settings.gradle <<'EOF'
+          pluginManagement {
+            repositories {
+              google()
+              mavenCentral()
+              gradlePluginPortal()
+            }
+          }
+          dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositories {
+              google()
+              mavenCentral()
+            }
+          }
+          include ':app'
+          EOF
+          echo "org.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8" > gradle.properties
+          echo "android.useAndroidX=true" >> gradle.properties
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          cat > build.gradle <<'EOF'
+          plugins {
+            id 'com.android.application' version '8.7.3' apply false
+          }
+          EOF
           cat > app/build.gradle <<'EOF'
-          plugins { id 'com.android.application' }
+          plugins {
+            id 'com.android.application'
+          }
           android {
             namespace 'com.plimclip.oficial'
             compileSdk 34
@@ -27,17 +59,23 @@ jobs:
               applicationId "com.plimclip.oficial"
               minSdk 24
               targetSdk 34
-              versionCode 13
-              versionName "1.0.13"
+              versionCode 17
+              versionName "1.0.17"
             }
-            buildTypes { release { minifyEnabled false } }
+            buildTypes {
+              release {
+                minifyEnabled false
+              }
+            }
           }
-          dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
+          dependencies {
+            implementation 'androidx.appcompat:appcompat:1.6.1'
+          }
           EOF
           cat > app/src/main/AndroidManifest.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-            <application android:label="Plim Clip">
+            <application android:label="Plim Clip" android:theme="@android:style/Theme.Light">
               <activity android:name=".MainActivity" android:exported="true">
                 <intent-filter>
                   <action android:name="android.intent.action.MAIN"/>
@@ -56,13 +94,14 @@ jobs:
             protected void onCreate(Bundle b){
               super.onCreate(b);
               TextView t=new TextView(this);
-              t.setText("Plim Clip Oficial - Build 13 VERDE");
+              t.setTextSize(20);
+              t.setText("Plim Clip Oficial - Build 17 VERDE");
               setContentView(t);
             }
           }
           EOF
           echo '<resources><string name="app_name">Plim Clip</string></resources>' > app/src/main/res/values/strings.xml
-          echo "org.gradle.jvmargs=-Xmx2048m" > gradle.properties
+          ls -R
 
       - name: Setup Gradle 8.7
         uses: gradle/actions/setup-gradle@v4
@@ -70,7 +109,7 @@ jobs:
           gradle-version: 8.7
 
       - name: Build AAB Release
-        run: gradle :app:bundleRelease
+        run: gradle :app:bundleRelease --stacktrace
 
       - name: Upload AAB para Play Console
         uses: actions/upload-artifact@v4
