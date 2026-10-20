@@ -11,47 +11,16 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Aceitar licencas Android
-        run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          ls $ANDROID_HOME/cmdline-tools/
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0" || true
-
-      - name: Criar projeto Plim Clip
+      - name: Criar projeto Plim Clip - compativel Gradle 8.9
         run: |
           rm -rf app build .gradle gradle
           mkdir -p app/src/main/java/com/plimclip/oficial
           mkdir -p app/src/main/res/values
-          cat > settings.gradle <<'EOF'
-          pluginManagement {
-            repositories {
-              google()
-              mavenCentral()
-              gradlePluginPortal()
-            }
-          }
-          dependencyResolutionManagement {
-            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-            repositories {
-              google()
-              mavenCentral()
-            }
-          }
-          include ':app'
-          EOF
-          echo "org.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8" > gradle.properties
-          echo "android.useAndroidX=true" >> gradle.properties
-          echo "sdk.dir=$ANDROID_HOME" > local.properties
-          cat > build.gradle <<'EOF'
-          plugins {
-            id 'com.android.application' version '8.7.3' apply false
-          }
-          EOF
+          mkdir -p gradle/wrapper
+          echo "include ':app'" > settings.gradle
+          echo "plugins { id 'com.android.application' version '8.7.3' apply false }" > build.gradle
           cat > app/build.gradle <<'EOF'
-          plugins {
-            id 'com.android.application'
-          }
+          plugins { id 'com.android.application' }
           android {
             namespace 'com.plimclip.oficial'
             compileSdk 34
@@ -59,23 +28,17 @@ jobs:
               applicationId "com.plimclip.oficial"
               minSdk 24
               targetSdk 34
-              versionCode 17
-              versionName "1.0.17"
+              versionCode 14
+              versionName "1.0.14"
             }
-            buildTypes {
-              release {
-                minifyEnabled false
-              }
-            }
+            buildTypes { release { minifyEnabled false } }
           }
-          dependencies {
-            implementation 'androidx.appcompat:appcompat:1.6.1'
-          }
+          dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
           EOF
           cat > app/src/main/AndroidManifest.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-            <application android:label="Plim Clip" android:theme="@android:style/Theme.Light">
+            <application android:label="Plim Clip">
               <activity android:name=".MainActivity" android:exported="true">
                 <intent-filter>
                   <action android:name="android.intent.action.MAIN"/>
@@ -94,19 +57,24 @@ jobs:
             protected void onCreate(Bundle b){
               super.onCreate(b);
               TextView t=new TextView(this);
-              t.setTextSize(20);
-              t.setText("Plim Clip Oficial - Build 17 VERDE");
+              t.setText("Plim Clip Oficial VERDE 14");
               setContentView(t);
             }
           }
           EOF
           echo '<resources><string name="app_name">Plim Clip</string></resources>' > app/src/main/res/values/strings.xml
-          ls -R
+          echo "org.gradle.jvmargs=-Xmx2048m" > gradle.properties
+          # WRAPPER 8.9 - CORRECAO DO ERRO
+          echo "distributionBase=GRADLE_USER_HOME" > gradle/wrapper/gradle-wrapper.properties
+          echo "distributionPath=wrapper/dists" >> gradle/wrapper/gradle-wrapper.properties
+          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.9-all.zip" >> gradle/wrapper/gradle-wrapper.properties
+          echo "zipStoreBase=GRADLE_USER_HOME" >> gradle/wrapper/gradle-wrapper.properties
+          echo "zipStorePath=wrapper/dists" >> gradle/wrapper/gradle-wrapper.properties
 
-      - name: Setup Gradle 8.7
+      - name: Setup Gradle 8.9 - CORRECAO
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: 8.7
+          gradle-version: 8.9
 
       - name: Build AAB Release
         run: gradle :app:bundleRelease --stacktrace
