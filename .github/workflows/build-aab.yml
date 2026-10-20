@@ -7,20 +7,18 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
         with:
-          distribution: temurin
+          distribution: 'temurin'
           java-version: '17'
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: 8.7
-      - run: yes | sdkmanager --licenses || true
-      - name: Create
+
+      - name: Criar projeto Android
         run: |
-          rm -rf app build
+          rm -rf app build .gradle gradle
           mkdir -p app/src/main/java/com/plimclip/oficial
           mkdir -p app/src/main/res/values
           echo "include ':app'" > settings.gradle
-          cat > app/build.gradle << 'END
-          plugins { id 'com.android.application' version '8.7.3' }
+          echo "plugins { id 'com.android.application' version '8.7.3' apply false }" > build.gradle
+          cat > app/build.gradle <<'EOF'
+          plugins { id 'com.android.application' }
           android {
             namespace 'com.plimclip.oficial'
             compileSdk 34
@@ -28,14 +26,14 @@ jobs:
               applicationId "com.plimclip.oficial"
               minSdk 24
               targetSdk 34
-              versionCode 8
+              versionCode 11
               versionName "1.0"
             }
             buildTypes { release { minifyEnabled false } }
           }
           dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
-          END
-          cat > app/src/main/AndroidManifest.xml << 'END
+          EOF
+          cat > app/src/main/AndroidManifest.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
             <application android:label="Plim Clip">
@@ -47,8 +45,8 @@ jobs:
               </activity>
             </application>
           </manifest>
-          END
-          cat > app/src/main/java/com/plimclip/oficial/MainActivity.java << 'END
+          EOF
+          cat > app/src/main/java/com/plimclip/oficial/MainActivity.java <<'EOF'
           package com.plimclip.oficial;
           import android.os.Bundle;
           import android.widget.TextView;
@@ -61,14 +59,19 @@ jobs:
               setContentView(t);
             }
           }
-          END
+          EOF
           echo '<resources><string name="app_name">Plim Clip</string></resources>' > app/src/main/res/values/strings.xml
           echo "org.gradle.jvmargs=-Xmx2048m" > gradle.properties
-      - run: |
-          gradle wrapper --gradle-version 8.7
-          chmod +x ./gradlew
-          ./gradlew :app:bundleRelease
-      - uses: actions/upload-artifact@v4
+
+      - name: Build AAB com Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
         with:
-          name: aab-oficial
+          gradle-version: 8.7
+          cache-disabled: false
+          arguments: :app:bundleRelease
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: aab-oficial-play-console
           path: app/build/outputs/bundle/release/app-release.aab
