@@ -11,14 +11,33 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Criar projeto Plim Clip - compativel Gradle 8.9
+      - name: Criar projeto com PluginManagement CORRETO
         run: |
           rm -rf app build .gradle gradle
           mkdir -p app/src/main/java/com/plimclip/oficial
           mkdir -p app/src/main/res/values
           mkdir -p gradle/wrapper
-          echo "include ':app'" > settings.gradle
+
+          cat > settings.gradle <<'EOF'
+          pluginManagement {
+            repositories {
+              google()
+              mavenCentral()
+              gradlePluginPortal()
+            }
+          }
+          dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositories {
+              google()
+              mavenCentral()
+            }
+          }
+          include ':app'
+          EOF
+
           echo "plugins { id 'com.android.application' version '8.7.3' apply false }" > build.gradle
+
           cat > app/build.gradle <<'EOF'
           plugins { id 'com.android.application' }
           android {
@@ -28,13 +47,14 @@ jobs:
               applicationId "com.plimclip.oficial"
               minSdk 24
               targetSdk 34
-              versionCode 14
-              versionName "1.0.14"
+              versionCode 15
+              versionName "1.0.15"
             }
             buildTypes { release { minifyEnabled false } }
           }
           dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
           EOF
+
           cat > app/src/main/AndroidManifest.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -48,6 +68,7 @@ jobs:
             </application>
           </manifest>
           EOF
+
           cat > app/src/main/java/com/plimclip/oficial/MainActivity.java <<'EOF'
           package com.plimclip.oficial;
           import android.os.Bundle;
@@ -57,21 +78,24 @@ jobs:
             protected void onCreate(Bundle b){
               super.onCreate(b);
               TextView t=new TextView(this);
-              t.setText("Plim Clip Oficial VERDE 14");
+              t.setText("Plim Clip VERDE 15");
               setContentView(t);
             }
           }
           EOF
+
           echo '<resources><string name="app_name">Plim Clip</string></resources>' > app/src/main/res/values/strings.xml
-          echo "org.gradle.jvmargs=-Xmx2048m" > gradle.properties
-          # WRAPPER 8.9 - CORRECAO DO ERRO
+          echo "org.gradle.jvmargs=-Xmx3g" > gradle.properties
+
           echo "distributionBase=GRADLE_USER_HOME" > gradle/wrapper/gradle-wrapper.properties
           echo "distributionPath=wrapper/dists" >> gradle/wrapper/gradle-wrapper.properties
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.9-all.zip" >> gradle/wrapper/gradle-wrapper.properties
           echo "zipStoreBase=GRADLE_USER_HOME" >> gradle/wrapper/gradle-wrapper.properties
           echo "zipStorePath=wrapper/dists" >> gradle/wrapper/gradle-wrapper.properties
 
-      - name: Setup Gradle 8.9 - CORRECAO
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+
+      - name: Setup Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.9
@@ -79,7 +103,7 @@ jobs:
       - name: Build AAB Release
         run: gradle :app:bundleRelease --stacktrace
 
-      - name: Upload AAB para Play Console
+      - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
           name: aab-oficial-play-console
