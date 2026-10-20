@@ -1,4 +1,4 @@
-name: Build AAB
+name: Construir AAB
 on: [push, workflow_dispatch]
 jobs:
   build:
@@ -7,57 +7,21 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: 17
+          distribution: 'temurin'
+          java-version: '17'
       - uses: android-actions/setup-android@v3
       - name: Criar projeto
         run: |
           mkdir -p app/src/main/java/com/plimclip/oficial
           mkdir -p app/src/main/res/values
           echo "include ':app'" > settings.gradle
-          cat > app/build.gradle << 'EOF'
-          plugins { id 'com.android.application' }
-          android {
-            namespace 'com.plimclip.oficial'
-            compileSdk 34
-            defaultConfig {
-              applicationId "com.plimclip.oficial"
-              minSdk 24
-              targetSdk 34
-              versionCode 1
-              versionName "1.0"
-            }
-            buildTypes { release { minifyEnabled false } }
-          }
-          dependencies {
-            implementation 'com.google.android.gms:play-services-ads:22.6.0'
-            implementation 'androidx.appcompat:appcompat:1.6.1'
-          }
-          EOF
-          cat > app/src/main/AndroidManifest.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-            <uses-permission android:name="android.permission.INTERNET"/>
-            <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>
-            <application android:label="Plim Clip Oficial">
-              <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-7555264985603694~4283678099"/>
-              <activity android:name=".MainActivity" android:exported="true">
-                <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
-              </activity>
-            </application>
-          </manifest>
-          EOF
-          cat > app/src/main/java/com/plimclip/oficial/MainActivity.java << 'EOF'
-          package com.plimclip.oficial;
-          import android.os.Bundle; import android.widget.TextView;
-          import androidx.appcompat.app.AppCompatActivity;
-          public class MainActivity extends AppCompatActivity {
-            protected void onCreate(Bundle b){ super.onCreate(b); TextView tv=new TextView(this); tv.setText("Plim Clip Oficial"); setContentView(tv); }
-          }
-          EOF
-          echo '<resources><string name="app_name">Plim Clip Oficial</string></resources>' > app/src/main/res/values/strings.xml
+          echo "plugins { id 'com.android.application' }" > app/build.gradle
+          echo "android { namespace 'com.plimclip.oficial'; compileSdk 34; defaultConfig { applicationId 'com.plimclip.oficial'; minSdk 24; targetSdk 34; versionCode 1; versionName '1.0' } buildTypes { release { minifyEnabled false } } } dependencies { implementation 'com.google.android.gms:play-services-ads:22.6.0'; implementation 'androidx.appcompat:appcompat:1.6.1' }" >> app/build.gradle
+          printf '<?xml version="1.0"?><manifest xmlns:android="http://schemas.android.com/apk/res/android"><uses-permission android:name="android.permission.INTERNET"/><application android:label="Plim Clip"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>' > app/src/main/AndroidManifest.xml
+          printf 'package com.plimclip.oficial; import android.os.Bundle; import android.widget.TextView; import androidx.appcompat.app.AppCompatActivity; public class MainActivity extends AppCompatActivity { protected void onCreate(Bundle b){ super.onCreate(b); TextView tv=new TextView(this); tv.setText("Plim Clip Oficial"); setContentView(tv); } }' > app/src/main/java/com/plimclip/oficial/MainActivity.java
+          echo '<resources><string name="app_name">Plim Clip</string></resources>' > app/src/main/res/values/strings.xml
           echo "org.gradle.jvmargs=-Xmx2048m" > gradle.properties
-      - name: Build
+      - name: Build AAB
         run: |
           gradle wrapper --gradle-version 8.2
           chmod +x ./gradlew
