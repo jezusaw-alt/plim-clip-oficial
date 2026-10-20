@@ -140,6 +140,8 @@ jobs:
           EOF
 
           echo "org.gradle.jvmargs=-Xmx2048m" > gradle.properties
+echo "android.useAndroidX=true" >> gradle.properties
+
 
       - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v4
