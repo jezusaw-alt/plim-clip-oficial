@@ -11,52 +11,56 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Criar projeto com PluginManagement CORRETO
+      - name: Instalar SDK 34
         run: |
-          rm -rf app build .gradle gradle
-          mkdir -p app/src/main/java/com/plimclip/oficial
-          mkdir -p app/src/main/res/values
-          mkdir -p gradle/wrapper
+          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
-          cat > settings.gradle <<'EOF'
+      - name: Criar projeto com Python (sem heredoc)
+        run: |
+          python3 << 'PY'
+          import os, pathlib
+          pathlib.Path("app/src/main/java/com/plimclip/oficial").mkdir(parents=True, exist_ok=True)
+          pathlib.Path("app/src/main/res/values").mkdir(parents=True, exist_ok=True)
+          
+          open("settings.gradle","w").write('''
           pluginManagement {
-            repositories {
-              google()
-              mavenCentral()
-              gradlePluginPortal()
-            }
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
           }
           dependencyResolutionManagement {
-            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-            repositories {
-              google()
-              mavenCentral()
-            }
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
           }
           include ':app'
-          EOF
+          ''')
 
-          echo "plugins { id 'com.android.application' version '8.7.3' apply false }" > build.gradle
-
-          cat > app/build.gradle <<'EOF'
+          open("build.gradle","w").write("plugins { id 'com.android.application' version '8.7.3' apply false }")
+          
+          open("app/build.gradle","w").write('''
           plugins { id 'com.android.application' }
           android {
-            namespace 'com.plimclip.oficial'
-            compileSdk 34
-            defaultConfig {
-              applicationId "com.plimclip.oficial"
-              minSdk 24
-              targetSdk 34
-              versionCode 15
-              versionName "1.0.15"
-            }
-            buildTypes { release { minifyEnabled false } }
+              namespace 'com.plimclip.oficial'
+              compileSdk 34
+              defaultConfig {
+                  applicationId "com.plimclip.oficial"
+                  minSdk 24
+                  targetSdk 34
+                  versionCode 20
+                  versionName "1.0.20"
+              }
+              buildTypes { release { minifyEnabled false } }
           }
           dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
-          EOF
+          ''')
 
-          cat > app/src/main/AndroidManifest.xml <<'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
+          open("app/src/main/AndroidManifest.xml","w").write('''<?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
             <application android:label="Plim Clip">
               <activity android:name=".MainActivity" android:exported="true">
@@ -66,45 +70,43 @@ jobs:
                 </intent-filter>
               </activity>
             </application>
-          </manifest>
-          EOF
+          </manifest>''')
 
-          cat > app/src/main/java/com/plimclip/oficial/MainActivity.java <<'EOF'
+          open("app/src/main/java/com/plimclip/oficial/MainActivity.java","w").write('''
           package com.plimclip.oficial;
           import android.os.Bundle;
           import android.widget.TextView;
           import androidx.appcompat.app.AppCompatActivity;
           public class MainActivity extends AppCompatActivity {
-            protected void onCreate(Bundle b){
-              super.onCreate(b);
-              TextView t=new TextView(this);
-              t.setText("Plim Clip VERDE 15");
-              setContentView(t);
-            }
+              protected void onCreate(Bundle b){
+                  super.onCreate(b);
+                  TextView t=new TextView(this);
+                  t.setText("Plim Clip Oficial - BUILD 20 VERDE");
+                  t.setTextSize(24);
+                  setContentView(t);
+              }
           }
-          EOF
+          ''')
 
-          echo '<resources><string name="app_name">Plim Clip</string></resources>' > app/src/main/res/values/strings.xml
-          echo "org.gradle.jvmargs=-Xmx3g" > gradle.properties
-
-          echo "distributionBase=GRADLE_USER_HOME" > gradle/wrapper/gradle-wrapper.properties
-          echo "distributionPath=wrapper/dists" >> gradle/wrapper/gradle-wrapper.properties
-          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.9-all.zip" >> gradle/wrapper/gradle-wrapper.properties
-          echo "zipStoreBase=GRADLE_USER_HOME" >> gradle/wrapper/gradle-wrapper.properties
-          echo "zipStorePath=wrapper/dists" >> gradle/wrapper/gradle-wrapper.properties
-
-          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          open("app/src/main/res/values/strings.xml","w").write('<resources><string name="app_name">Plim Clip</string></resources>')
+          open("gradle.properties","w").write('org.gradle.jvmargs=-Xmx4096m
+android.useAndroidX=true
+')
+          open("local.properties","w").write(f"sdk.dir={os.environ['ANDROID_HOME']}")
+          print("Projeto criado OK")
+          PY
 
       - name: Setup Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.9
 
-      - name: Build AAB Release
-        run: gradle :app:bundleRelease --stacktrace
+      - name: Build AAB
+        run: gradle :app:bundleRelease --stacktrace --info
 
       - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
-          name: aab-oficial-play-console
+          name: PlimClip-AAB-BUILD-20-VERDE
           path: app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
